@@ -1,0 +1,8 @@
+__pycache__/
+tmp-tutair-inbox/
+.env
+.env/
+*.log
+.pytest_cache/
+.venv/
+venv/

@@ -1,0 +1,197 @@
+{
+  "schema_version": "0.1.1",
+  "map_id": "tutair-gcse-course-map-mvp",
+  "status": "mvp",
+  "last_updated": "2026-07-09",
+  "source_policy": {
+    "preferred_sources": [
+      "official_exam_board_specification",
+      "official_department_for_education_subject_content",
+      "school_or_teacher_confirmation"
+    ],
+    "student_personal_entry_rule": "A specification can be mapped as an official course source, but the student's personal route and tier remain unconfirmed until school, teacher, timetable, or candidate-entry evidence confirms them."
+  },
+  "subjects": [
+    {
+      "subject_id": "SCI",
+      "name": "Science",
+      "qualifications": [
+        {
+          "qualification_id": "GCSE-COMBINED-SCIENCE-TRILOGY",
+          "name": "GCSE Combined Science: Trilogy",
+          "level": "GCSE",
+          "exam_boards": [
+            {
+              "board_id": "AQA",
+              "name": "AQA",
+              "specification_code": "8464",
+              "source_status": "official_specification",
+              "student_entry_status": "unconfirmed",
+              "sources": [
+                {
+                  "source_id": "AQA-8464-SPEC",
+                  "title": "AQA GCSE Combined Science: Trilogy 8464 specification",
+                  "url": "https://www.aqa.org.uk/subjects/science/gcse/combined-science-trilogy-8464/specification",
+                  "source_type": "official_exam_board_specification",
+                  "accessed_on": "2026-07-09"
+                },
+                {
+                  "source_id": "DFE-GCSE-SUBJECT-CONTENT",
+                  "title": "GCSE subject content",
+                  "url": "https://www.gov.uk/government/collections/gcse-subject-content",
+                  "source_type": "official_department_for_education_subject_content",
+                  "accessed_on": "2026-07-09"
+                }
+              ],
+              "tiers": [
+                {
+                  "tier_id": "shared",
+                  "name": "Shared foundation and higher content",
+                  "applies_to": "Objectives in this MVP are treated as shared until a later tier-specific review marks them otherwise.",
+                  "papers": [
+                    {
+                      "paper_id": "BIO-B1",
+                      "name": "Biology Paper 1",
+                      "assessment_type": "written_exam",
+                      "duration": "1 hour 15 minutes",
+                      "topics": [
+                        {
+                          "topic_id": "CELL-BIOLOGY",
+                          "name": "Cell biology",
+                          "spec_reference": "AQA 8464 section 4.1",
+                          "coverage_status": "partial_mvp",
+                          "coverage_note": "This MVP intentionally maps a small, quality-reviewed subset of Cell biology. It does not yet cover every AQA 8464 section 4.1 learning point.",
+                          "known_gaps": [
+                            "4.1.1.3 Cell specialisation",
+                            "4.1.1.4 Cell differentiation",
+                            "4.1.3 Transport in cells"
+                          ],
+                          "subtopics": [
+                            {
+                              "subtopic_id": "CELL-STRUCTURE",
+                              "name": "Cell structure",
+                              "spec_reference": "AQA 8464 sections 4.1.1.1 and 4.1.1.2",
+                              "learning_objectives": [
+                                {
+                                  "objective_id": "LO-AQA-8464-BIO-B1-CELL-BIOLOGY-CELL-STRUCTURE-001",
+                                  "statement": "Explain how the main sub-cellular structures in animal, plant, and bacterial cells are related to their functions.",
+                                  "source_ref": "AQA 8464 section 4.1.1.2 Animal and plant cells",
+                                  "source_trace": {
+                                    "source_id": "AQA-8464-SPEC",
+                                    "section": "4.1.1.2",
+                                    "page": 20,
+                                    "pdf_lines": "600-630",
+                                    "trace_status": "verified_against_official_specification"
+                                  },
+                                  "status": "verified_official_specification",
+                                  "tier_scope": "shared"
+                                },
+                                {
+                                  "objective_id": "LO-AQA-8464-BIO-B1-CELL-BIOLOGY-CELL-STRUCTURE-002",
+                                  "statement": "Compare eukaryotic and prokaryotic cells using their key structural differences, including nucleus, DNA loop, plasmids, cell membrane, cytoplasm, and cell wall.",
+                                  "source_ref": "AQA 8464 section 4.1.1.1 Eukaryotes and prokaryotes",
+                                  "source_trace": {
+                                    "source_id": "AQA-8464-SPEC",
+                                    "section": "4.1.1.1",
+                                    "page": 20,
+                                    "pdf_lines": "580-596",
+                                    "trace_status": "verified_against_official_specification"
+                                  },
+                                  "status": "verified_official_specification",
+                                  "tier_scope": "shared"
+                                }
+                              ]
+                            },
+                            {
+                              "subtopic_id": "MICROSCOPY",
+                              "name": "Microscopy",
+                              "spec_reference": "AQA 8464 section 4.1.1.5 and required practical activity 1",
+                              "learning_objectives": [
+                                {
+                                  "objective_id": "LO-AQA-8464-BIO-B1-CELL-BIOLOGY-MICROSCOPY-001",
+                                  "statement": "Use the relationship between magnification, image size, and real size in microscopy calculations.",
+                                  "source_ref": "AQA 8464 section 4.1.1.5 Microscopy",
+                                  "source_trace": {
+                                    "source_id": "AQA-8464-SPEC",
+                                    "section": "4.1.1.5",
+                                    "page": 22,
+                                    "pdf_lines": "674-683",
+                                    "trace_status": "verified_against_official_specification"
+                                  },
+                                  "status": "verified_official_specification",
+                                  "tier_scope": "shared"
+                                },
+                                {
+                                  "objective_id": "LO-AQA-8464-BIO-B1-CELL-BIOLOGY-MICROSCOPY-002",
+                                  "statement": "Explain how developments in microscopy, including electron microscopy, increased understanding of sub-cellular structures.",
+                                  "source_ref": "AQA 8464 section 4.1.1.5 Microscopy",
+                                  "source_trace": {
+                                    "source_id": "AQA-8464-SPEC",
+                                    "section": "4.1.1.5",
+                                    "page": 22,
+                                    "pdf_lines": "661-670",
+                                    "trace_status": "verified_against_official_specification"
+                                  },
+                                  "status": "verified_official_specification",
+                                  "tier_scope": "shared"
+                                }
+                              ]
+                            },
+                            {
+                              "subtopic_id": "CELL-DIVISION",
+                              "name": "Cell division",
+                              "spec_reference": "AQA 8464 sections 4.1.2.1, 4.1.2.2, and 4.1.2.3",
+                              "learning_objectives": [
+                                {
+                                  "objective_id": "LO-AQA-8464-BIO-B1-CELL-BIOLOGY-CELL-DIVISION-001",
+                                  "statement": "Describe the overall stages of the cell cycle, including mitosis, and explain why mitosis matters for growth and development.",
+                                  "source_ref": "AQA 8464 section 4.1.2.2 Mitosis and the cell cycle",
+                                  "source_trace": {
+                                    "source_id": "AQA-8464-SPEC",
+                                    "section": "4.1.2.2",
+                                    "page": 23,
+                                    "pdf_lines": "695-716",
+                                    "trace_status": "verified_against_official_specification"
+                                  },
+                                  "status": "verified_official_specification",
+                                  "tier_scope": "shared"
+                                },
+                                {
+                                  "objective_id": "LO-AQA-8464-BIO-B1-CELL-BIOLOGY-CELL-DIVISION-002",
+                                  "statement": "Describe the function of stem cells in embryos, adult animals, and plant meristems, including their potential uses and risks.",
+                                  "source_ref": "AQA 8464 section 4.1.2.3 Stem cells",
+                                  "source_trace": {
+                                    "source_id": "AQA-8464-SPEC",
+                                    "section": "4.1.2.3",
+                                    "page": 24,
+                                    "pdf_lines": "718-753",
+                                    "trace_status": "verified_against_official_specification"
+                                  },
+                                  "status": "verified_official_specification",
+                                  "tier_scope": "shared"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "capture_link_examples": [
+    {
+      "capture_type": "tutair_learning_capture",
+      "linked_learning_objectives": [
+        "LO-AQA-8464-BIO-B1-CELL-BIOLOGY-CELL-STRUCTURE-001",
+        "LO-AQA-8464-BIO-B1-CELL-BIOLOGY-MICROSCOPY-001"
+      ]
+    }
+  ]
+}
