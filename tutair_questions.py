@@ -274,6 +274,19 @@ def extract_json(text: str) -> dict:
 # Minting
 # --------------------------------------------------------------------------------------
 
+def normalise_timestamp(value) -> str:
+    """Keep the cited marker plain ASCII.
+
+    Writers sometimes return a range rather than a single moment, and they punctuate it
+    with an en or em dash. That is fine as content, but it is the one field printed to a
+    console during a run, and a Windows console on a legacy code page renders it as
+    mojibake. Fold the dashes to a hyphen and strip any brackets.
+    """
+    text = str(value or "").strip().strip("[]").strip()
+    text = re.sub(r"[‐-―−]", "-", text)
+    return re.sub(r"\s+", " ", text)
+
+
 def parse_writer_reply(text: str) -> list[MintedQuestion]:
     payload = extract_json(text)
     questions: list[MintedQuestion] = []
@@ -288,7 +301,7 @@ def parse_writer_reply(text: str) -> list[MintedQuestion]:
             options=options,
             answer_id=str(item.get("answer_id", "")).strip(),
             explanation=str(item.get("explanation", "")).strip(),
-            source_timestamp=str(item.get("source_timestamp", "")).strip(),
+            source_timestamp=normalise_timestamp(item.get("source_timestamp", "")),
             objective_id=str(item.get("objective_id", "")).strip(),
         )
         if is_structurally_valid(question):

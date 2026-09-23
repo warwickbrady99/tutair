@@ -10,6 +10,7 @@ from tutair_questions import (
     extract_json,
     is_structurally_valid,
     mint_questions,
+    normalise_timestamp,
     parse_reviewer_reply,
     parse_writer_reply,
     upsert_questions_section,
@@ -187,6 +188,39 @@ class TestOutput(unittest.TestCase):
 
         self.assertIn("## Flashcards", updated)
         self.assertIn("## Multiple Choice Questions", updated)
+
+
+class TestTimestampNormalising(unittest.TestCase):
+    """The cited marker is printed to a console during a run, so keep it plain ASCII."""
+
+    def test_an_en_dash_range_becomes_a_hyphen(self):
+        self.assertEqual(normalise_timestamp("00:46–00:52"), "00:46-00:52")
+
+    def test_an_em_dash_and_a_minus_sign_are_folded_too(self):
+        self.assertEqual(normalise_timestamp("01:00—01:10"), "01:00-01:10")
+        self.assertEqual(normalise_timestamp("01:00−01:10"), "01:00-01:10")
+
+    def test_brackets_and_padding_are_stripped(self):
+        self.assertEqual(normalise_timestamp("  [04:12] "), "04:12")
+
+    def test_a_plain_timestamp_is_left_alone(self):
+        self.assertEqual(normalise_timestamp("04:12"), "04:12")
+
+    def test_a_missing_timestamp_is_empty_rather_than_none(self):
+        self.assertEqual(normalise_timestamp(None), "")
+
+    def test_a_normalised_timestamp_survives_into_the_question(self):
+        reply = json.dumps({"questions": [{
+            "id": "q1", "stem": "What does mitosis produce?",
+            "options": [{"id": "A", "text": "Gametes"}, {"id": "B", "text": "Body cells"},
+                        {"id": "C", "text": "Enzymes"}, {"id": "D", "text": "Hormones"}],
+            "answer_id": "B", "explanation": "Mitosis makes body cells.",
+            "source_timestamp": "00:46–00:52"}]})
+
+        question = parse_writer_reply(reply)[0]
+
+        self.assertEqual(question.source_timestamp, "00:46-00:52")
+        self.assertTrue(question.source_timestamp.isascii())
 
 
 if __name__ == "__main__":
