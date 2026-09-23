@@ -75,7 +75,16 @@ def main(argv: list[str] | None = None) -> int:
     )
     capture_path = save_capture(
         build_ready_capture(
-            source, segments, args.subject, args.topic, captured_on, source_path
+            source,
+            segments,
+            args.subject,
+            args.topic,
+            captured_on,
+            source_path,
+            # --board is a claim about which course this is, so it is recorded as the
+            # POSSIBLE board. It stays unconfirmed: naming a board on the command line
+            # is not evidence of the student's entry.
+            possible_exam_board=args.board or "unknown",
         ),
         args.inbox_root,
     )
