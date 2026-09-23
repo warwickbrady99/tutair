@@ -1,11 +1,14 @@
+import os
 import shutil
 import tempfile
 import unittest
+from unittest import mock
 from datetime import date
 from pathlib import Path
 
 from tutair_intake import (
     TutairCapture,
+    default_inbox_root,
     build_capture_markdown,
     dated_inbox_dir,
     detect_source_type,
@@ -102,6 +105,28 @@ class TestTutairIntake(unittest.TestCase):
             self.assertIn(str(source_path), markdown)
         finally:
             shutil.rmtree(temp_dir)
+
+
+class TestDefaultInboxRoot(unittest.TestCase):
+    """The notes folder must follow the machine, not one developer's Windows login."""
+
+    def test_the_environment_variable_wins(self):
+        with mock.patch.dict(os.environ, {"TUTAIR_INBOX_ROOT": "D:/notes/TutAIR"}):
+            self.assertEqual(default_inbox_root(), Path("D:/notes/TutAIR"))
+
+    def test_without_it_the_path_sits_under_the_current_user_home(self):
+        # Remove only our variable: clearing the whole environment takes USERPROFILE
+        # with it, and Path.home() needs that on Windows.
+        with mock.patch.dict(os.environ):
+            os.environ.pop("TUTAIR_INBOX_ROOT", None)
+            root = default_inbox_root()
+
+        self.assertTrue(str(root).startswith(str(Path.home())))
+        self.assertEqual(root.name, "TutAIR")
+
+    def test_a_blank_setting_is_ignored_rather_than_used(self):
+        with mock.patch.dict(os.environ, {"TUTAIR_INBOX_ROOT": "   "}):
+            self.assertEqual(default_inbox_root().name, "TutAIR")
 
 
 if __name__ == "__main__":

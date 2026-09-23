@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import re
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -10,7 +11,20 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 
-DEFAULT_INBOX_ROOT = Path(r"C:\Users\Buggly\OneDrive\Desktop\MyPKA\Team Inbox\TutAIR")
+def default_inbox_root() -> Path:
+    """Where captures live, resolved per machine rather than hard-coded to one login.
+
+    TUTAIR_INBOX_ROOT wins if it is set. Otherwise the usual MyPKA location under the
+    current user's home, so the same checkout works on a second machine with a
+    different Windows login.
+    """
+    configured = os.getenv("TUTAIR_INBOX_ROOT", "").strip()
+    if configured:
+        return Path(configured)
+    return Path.home() / "OneDrive" / "Desktop" / "MyPKA" / "Team Inbox" / "TutAIR"
+
+
+DEFAULT_INBOX_ROOT = default_inbox_root()
 
 
 @dataclass(frozen=True)

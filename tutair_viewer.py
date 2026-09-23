@@ -20,7 +20,11 @@ except ImportError:
     load_dotenv = None
 
 
-DEFAULT_TUTAIR_ROOT = Path(r"C:\Users\Buggly\OneDrive\Desktop\MyPKA\Team Inbox\TutAIR")
+from tutair_intake import default_inbox_root
+
+# The viewer must look where intake writes, so both resolve the same way:
+# TUTAIR_INBOX_ROOT if set, otherwise the MyPKA folder under the current user's home.
+DEFAULT_TUTAIR_ROOT = default_inbox_root()
 TUTAIR_MVP_ROOT = Path(__file__).resolve().parent
 TUTAIR_ENV_PATH = TUTAIR_MVP_ROOT / ".env"
 VIEWER_UI_VERSION = "approved-dashboard-2026-07-09"

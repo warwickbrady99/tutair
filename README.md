@@ -47,6 +47,15 @@ captions ends the run before anything is written.
 Add `--spec-dir` to point at your folder of official specification PDFs, and `--no-spec` to
 mint from the transcript alone.
 
+## Where Notes Live
+
+Captures and notes default to `MyPKA/Team Inbox/TutAIR` under the **current user's home
+folder**, so the same checkout works on a second machine with a different Windows login.
+
+Override it for a different location by setting `TUTAIR_INBOX_ROOT`, or per command with
+`--inbox-root` (intake, transcript, pipeline) and `--root` (viewer). Pass the same folder to
+both, or the viewer will show nothing.
+
 ## Specification Grounding
 
 Questions written from a video alone test whatever the video happened to say. Questions written
