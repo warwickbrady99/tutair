@@ -22,8 +22,86 @@ Milestone 2 adds the source-content foundation: raw source text is stored separa
 - `tutair_process.py` - small V2 command that creates an ADHD-friendly processed learning note from one capture.
 - `test_tutair_process.py` - checks for the V2 processor.
 - `tutair_viewer.py` - small V3 local web viewer for processed TutAIR notes.
+- `tutair_transcript.py` - verifies a YouTube video and rips its captions into a ready capture.
+- `test_tutair_transcript.py` - checks verification, timestamps and the capture handoff.
+- `tutair_questions.py` - writes multiple-choice questions and has them independently reviewed.
+- `test_tutair_questions.py` - checks parsing, structural rules and the review gate.
+- `tutair_spec.py` - supplies course-map objectives and specification wording for minting.
+- `test_tutair_spec.py` - checks objective lookup, excerpting and spec-PDF selection.
+- `tutair_pipeline.py` - runs the whole chain from a YouTube URL to reviewed questions.
 - `test_tutair_viewer.py` - checks for the V3 viewer.
 - `course-map/` - Milestone 1 GCSE course-map MVP, kept separate from learning resources.
+
+## Whole Pipeline (YouTube URL to MCQs)
+
+One command that runs the whole chain:
+
+```powershell
+python .\tutair_pipeline.py --url "https://www.youtube.com/watch?v=abcdefghijk" --subject "Science" --topic "Cell structure" --board AQA
+```
+
+It verifies the video, rips the transcript, builds the revision note, then writes and reviews
+the questions. It stops at the first honest failure: an unverifiable URL or a video with no
+captions ends the run before anything is written.
+
+Add `--spec-dir` to point at your folder of official specification PDFs, and `--no-spec` to
+mint from the transcript alone.
+
+## Specification Grounding
+
+Questions written from a video alone test whatever the video happened to say. Questions written
+against the specification test what the exam board will actually ask. TutAIR uses both.
+
+Two sources, in order of authority:
+
+1. The **course map** (`course-map/data/course-map-mvp.json`) - the curriculum spine, where every
+   learning objective already has a stable ID and a spec reference. Matching objectives are given
+   to the writer, and an approved question records the `objective_id` it targets.
+2. The **official specification PDF**, searched for the topic and used as authority on scope.
+   Point `--spec-dir` at the folder holding them, or set `TUTAIR_SPEC_DIR`.
+
+The transcript decides what is answerable. The specification decides what is worth asking. The
+reviewer additionally rejects a question that goes beyond the specification, or that claims an
+objective it does not test.
+
+Where a topic is not in the course map and no specification is readable, TutAIR says so
+(`Specification grounding: none`) and mints from the transcript alone rather than pretending to
+exam-board coverage. Extracted specification text is cached in `.spec-cache/`.
+
+## Transcript Command (YouTube)
+
+Verify a YouTube video and rip its captions into a capture that is ready to process:
+
+```powershell
+python .\tutair_transcript.py --url "https://www.youtube.com/watch?v=abcdefghijk" --subject "Science" --topic "Ecology"
+```
+
+Nothing is ingested until the video has been fetched and confirmed to exist. The real title
+and channel are read from YouTube, not taken from whoever supplied the link. A video with no
+usable captions is reported and nothing is written.
+
+It saves three things: the plain transcript as source content, a timestamped transcript
+(`...-timestamped.md`), and a capture marked `ready_for_processing`.
+
+## Questions Command (multiple choice)
+
+Write multiple-choice questions from a processed note, then have them independently reviewed:
+
+```powershell
+python .\tutair_questions.py ".\path\to\processed-note.md" --count 8
+```
+
+Two model calls with different instructions. A **writer** produces candidates grounded in the
+transcript, each citing the timestamp that taught it. A **reviewer** then tries to prove each
+one unfair - more than one defensible answer, a key you can spot from the wording, a claim the
+transcript does not support. Only approved questions are shown for revision; rejected drafts
+are kept with the reviewer's objection in `<note>-questions.json`.
+
+Set the provider in `.env`. `TUTAIR_AI_PROVIDER=claude` runs on the Claude Code CLI;
+`openai` uses `OPENAI_API_KEY` and `TUTAIR_AI_MODEL`.
+
+The approved questions appear in the note under `Multiple Choice Questions`, and the viewer's
+**Quiz Me** button turns them into a real multiple-choice quiz with reveal-answer.
 
 ## V1 Intake Command
 

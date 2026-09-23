@@ -6,3 +6,9 @@ tmp-tutair-inbox/
 .pytest_cache/
 .venv/
 venv/
+
+# local end-to-end run output
+.testrun/
+
+# extracted specification text cache
+.spec-cache/

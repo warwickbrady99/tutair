@@ -30,6 +30,7 @@ SECTIONS = [
     "Key Facts",
     "What This Means",
     "Exam-Style Questions",
+    "Multiple Choice Questions",
     "Flashcards",
     "Next Revision Task",
     "Exam Board Mapping",
@@ -396,9 +397,56 @@ def render_note_payload(note: LearningNote | None, subject: str = "") -> str:
         "possible_exam_board": note.possible_exam_board,
         "sections": note.sections,
         "flashcards": parse_flashcards(note.sections.get("Flashcards", "")),
-        "questions": parse_questions(note.sections.get("Exam-Style Questions", "")),
+        "questions": load_quiz_questions(note),
     }
     return json.dumps(payload).replace("</", "<\\/")
+
+
+def load_quiz_questions(note: LearningNote) -> list[dict[str, object]]:
+    """Prefer real minted multiple-choice questions; fall back to the written prompts.
+
+    Minted questions live in a sidecar `<note>-questions.json` written by
+    tutair_questions.py. Only questions the independent reviewer approved are served.
+    """
+    minted = read_minted_questions(note.path)
+    if minted:
+        return minted
+    return parse_questions(note.sections.get("Exam-Style Questions", ""))
+
+
+def read_minted_questions(note_path: Path) -> list[dict[str, object]]:
+    sidecar = note_path.with_name(f"{note_path.stem}-questions.json")
+    if not sidecar.exists():
+        return []
+
+    try:
+        payload = json.loads(sidecar.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+
+    questions: list[dict[str, object]] = []
+    for item in payload.get("questions", []):
+        if item.get("status") != "approved":
+            continue
+        options = [
+            {"id": str(option.get("id", "")), "text": str(option.get("text", ""))}
+            for option in item.get("options", [])
+        ]
+        answer_id = str(item.get("answer_id", ""))
+        answer_text = next((option["text"] for option in options if option["id"] == answer_id), "")
+        timestamp = str(item.get("source_timestamp", "")).strip()
+        questions.append(
+            {
+                "question": str(item.get("stem", "")),
+                "options": options,
+                "answer_id": answer_id,
+                "answer": f"{answer_id}. {answer_text}".strip(". "),
+                "explanation": str(item.get("explanation", "")),
+                "timestamp": timestamp,
+                "objective_id": str(item.get("objective_id", "")).strip(),
+            }
+        )
+    return questions
 
 
 def parse_flashcards(markdown: str) -> list[dict[str, str]]:
@@ -1432,6 +1480,7 @@ JS = r"""
             ${navButton("settings", "Settings")}
           </nav>
           <section class="streak-card"><strong>${stats.streak} Day Streak</strong><small>Keep it going</small></section>
+          <button class="break-button" type="button" data-profile-action="revision-notes">Revision Notes</button>
           <button class="break-button" type="button" data-profile-action="edit-subjects">Edit Subjects</button>
         </aside>
         <main class="personal-main" aria-labelledby="dashboard-title">
@@ -1732,6 +1781,11 @@ JS = r"""
     if (action === "open-subject") {
       return renderSubjectPage(target?.dataset.subjectOpen || profile.currentSubjectId || "");
     }
+    if (action === "revision-notes") {
+      if (window.location.pathname === "/" || isNoteRoute()) return showViewer();
+      window.location.href = "/?view=notes";
+      return;
+    }
     if (action === "ai-tutor") {
       const subjectId = target?.dataset.subjectOpen || profile.currentSubjectId || "";
       if (subjectId) {
@@ -1765,11 +1819,23 @@ JS = r"""
     renderPlaceholder(labels[action] || target?.textContent?.trim() || "This feature");
   }
 
+  function isNoteRoute() {
+    return window.location.pathname.startsWith("/note/");
+  }
+
+  function wantsNotesView() {
+    return new URLSearchParams(window.location.search).get("view") === "notes";
+  }
+
   function initialiseProfileScreen() {
     const profile = loadProfile();
     const signedInNow = profile.signedIn || sessionStorage.getItem(sessionKey) === "1";
     if (!signedInNow) {
       renderLogin("login");
+    } else if (isNoteRoute() || wantsNotesView()) {
+      // A link straight to a note is a request to read that note. The personal
+      // dashboard must not cover it, or the revision content is unreachable.
+      showViewer();
     } else if (profile.completed) {
       renderPersonalDashboard();
     } else {
@@ -2325,6 +2391,14 @@ JS = r"""
     if (view) view.innerHTML = flashcardMarkup(note.flashcards || []);
   }
 
+  function quizAnswerMarkup(item) {
+    const parts = [`<strong>${escapeText(item.answer || "")}</strong>`];
+    if (item.timestamp) parts.push(`<em>taught at ${escapeText(item.timestamp)}</em>`);
+    if (item.explanation) parts.push(escapeText(item.explanation));
+    if (item.objective_id) parts.push(`<small>Specification objective: ${escapeText(item.objective_id)}</small>`);
+    return parts.join("<br>");
+  }
+
   function renderQuiz() {
     const questions = note.questions || [];
     if (!questions.length) {
@@ -2341,9 +2415,18 @@ JS = r"""
         ${questions.map((item, index) => `
           <section class="quiz-item">
             <label for="quiz-${index}"><strong>${index + 1}. ${escapeText(item.question)}</strong></label>
-            <textarea id="quiz-${index}" rows="3" placeholder="Try your answer first"></textarea>
+            ${(item.options || []).length
+              ? `<div class="quiz-options" role="group" aria-labelledby="quiz-${index}">
+                   ${item.options.map((option) => `
+                     <label class="quiz-option">
+                       <input type="radio" name="quiz-${index}" value="${escapeText(option.id)}">
+                       <span>${escapeText(option.id)}. ${escapeText(option.text)}</span>
+                     </label>
+                   `).join("")}
+                 </div>`
+              : `<textarea id="quiz-${index}" rows="3" placeholder="Try your answer first"></textarea>`}
             <button type="button" data-reveal="${index}">Reveal</button>
-            <p class="quiz-answer" id="answer-${index}" hidden>${escapeText(item.answer)}</p>
+            <p class="quiz-answer" id="answer-${index}" hidden>${quizAnswerMarkup(item)}</p>
           </section>
         `).join("")}
       </form>
@@ -3423,6 +3506,30 @@ code {
 
 .quiz-item label {
   color: var(--ink);
+}
+
+.quiz-options {
+  display: grid;
+  gap: 6px;
+}
+
+.quiz-option {
+  align-items: flex-start;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.quiz-option:hover {
+  border-color: var(--purple);
+}
+
+.quiz-option input {
+  margin-top: 3px;
 }
 
 .quiz-item textarea {
