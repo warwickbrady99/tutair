@@ -12,3 +12,6 @@ venv/
 
 # extracted specification text cache
 .spec-cache/
+
+# specification PDFs: copyright, see specifications/MANIFEST.md
+specifications/*.pdf
