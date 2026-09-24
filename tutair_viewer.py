@@ -22,9 +22,9 @@ except ImportError:
 
 from tutair_intake import default_inbox_root
 
-# The viewer must look where intake writes, so both resolve the same way:
-# TUTAIR_INBOX_ROOT if set, otherwise the MyPKA folder under the current user's home.
-DEFAULT_TUTAIR_ROOT = default_inbox_root()
+# The viewer must look where intake writes, so it calls the same resolver. Resolved
+# lazily at use, never bound at import, or a TUTAIR_INBOX_ROOT set in .env arrives
+# too late to be seen.
 TUTAIR_MVP_ROOT = Path(__file__).resolve().parent
 TUTAIR_ENV_PATH = TUTAIR_MVP_ROOT / ".env"
 VIEWER_UI_VERSION = "approved-dashboard-2026-07-09"
@@ -53,7 +53,8 @@ class LearningNote:
     sections: dict[str, str]
 
 
-def find_processed_notes(root: Path = DEFAULT_TUTAIR_ROOT) -> list[LearningNote]:
+def find_processed_notes(root: Path | None = None) -> list[LearningNote]:
+    root = root or default_inbox_root()
     notes: list[LearningNote] = []
     if not root.exists():
         return notes
@@ -63,7 +64,8 @@ def find_processed_notes(root: Path = DEFAULT_TUTAIR_ROOT) -> list[LearningNote]
     return sorted(notes, key=lambda note: (note.subject.lower(), note.topic.lower(), note.title.lower()))
 
 
-def parse_processed_note(path: Path, root: Path = DEFAULT_TUTAIR_ROOT) -> LearningNote:
+def parse_processed_note(path: Path, root: Path | None = None) -> LearningNote:
+    root = root or default_inbox_root()
     text = path.read_text(encoding="utf-8")
     metadata = parse_frontmatter(text)
     title = extract_title(text) or f"{metadata.get('subject', 'GCSE')} - {metadata.get('topic', path.stem)}"
@@ -994,7 +996,7 @@ def sanitize_openai_log_text(text: str) -> str:
 
 
 class TutairRequestHandler(BaseHTTPRequestHandler):
-    tutair_root = DEFAULT_TUTAIR_ROOT
+    tutair_root = default_inbox_root()
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
@@ -1072,8 +1074,9 @@ class TutairRequestHandler(BaseHTTPRequestHandler):
         return
 
 
-def run_server(host: str, port: int, root: Path) -> None:
+def run_server(host: str, port: int, root: Path | None = None) -> None:
     load_tutair_env()
+    root = root or default_inbox_root()   # after .env, so TUTAIR_INBOX_ROOT is seen
     handler = type("ConfiguredTutairRequestHandler", (TutairRequestHandler,), {"tutair_root": root})
     server = ThreadingHTTPServer((host, port), handler)
     print(f"TutAIR viewer running at http://{host}:{port}")
@@ -1084,7 +1087,7 @@ def run_server(host: str, port: int, root: Path) -> None:
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the local TutAIR revision viewer.")
-    parser.add_argument("--root", type=Path, default=DEFAULT_TUTAIR_ROOT)
+    parser.add_argument("--root", type=Path, default=None)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
     return parser.parse_args(argv)

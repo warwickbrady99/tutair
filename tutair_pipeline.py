@@ -15,7 +15,7 @@ import argparse
 from datetime import datetime
 from pathlib import Path
 
-from tutair_intake import DEFAULT_INBOX_ROOT, save_capture
+from tutair_intake import default_inbox_root, load_env, save_capture
 from tutair_process import process_capture
 from tutair_questions import (
     DEFAULT_QUESTION_COUNT,
@@ -46,13 +46,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--course-map", type=Path, help="Course map JSON. Defaults to the bundled MVP map.")
     parser.add_argument("--spec-dir", type=Path, help="Folder of official specification PDFs.")
     parser.add_argument("--no-spec", action="store_true", help="Mint from the transcript alone.")
-    parser.add_argument("--inbox-root", type=Path, default=DEFAULT_INBOX_ROOT)
+    parser.add_argument("--inbox-root", type=Path, default=None)
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
+    load_env()          # before parse_args: .env must reach the argparse defaults
     args = parse_args(argv)
-    load_env()
+    inbox_root = args.inbox_root or default_inbox_root()
 
     print("1/4  Verifying the source ...")
     source = verify_youtube(args.url)
@@ -71,7 +72,7 @@ def main(argv: list[str] | None = None) -> int:
 
     captured_on = datetime.now().date()
     source_path, transcript_path = save_transcript_files(
-        source, segments, args.subject, args.topic, captured_on, args.inbox_root
+        source, segments, args.subject, args.topic, captured_on, inbox_root
     )
     capture_path = save_capture(
         build_ready_capture(
@@ -86,7 +87,7 @@ def main(argv: list[str] | None = None) -> int:
             # is not evidence of the student's entry.
             possible_exam_board=args.board or "unknown",
         ),
-        args.inbox_root,
+        inbox_root,
     )
 
     print("3/4  Building the revision note ...")
@@ -139,7 +140,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Questions:  {json_path}")
     print()
     print("Open it with:")
-    print(f"  python .\\tutair_viewer.py --root \"{args.inbox_root}\"")
+    print(f"  python .\\tutair_viewer.py --root \"{inbox_root}\"")
     print("then press Quiz Me on the note.")
     return 0
 

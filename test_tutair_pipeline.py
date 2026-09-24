@@ -1,3 +1,4 @@
+import os
 import shutil
 import tempfile
 import unittest
@@ -112,6 +113,55 @@ class TestPipelineStopsHonestly(unittest.TestCase):
 
         self.assertEqual(code, 1)
         self.assertTrue(any("processed" in p.parts for p in self.root.glob("**/*.md")))
+
+
+class TestPipelineHonoursTheInboxEnvironment(unittest.TestCase):
+    """TUTAIR_INBOX_ROOT must reach the pipeline even with no --inbox-root flag.
+
+    It did not before: the default was bound when tutair_intake was imported, so a value
+    set afterwards by .env arrived too late and notes were written to the wrong folder.
+    """
+
+    def setUp(self):
+        self.root = Path(tempfile.mkdtemp(prefix="tutair-env-root-"))
+
+    def tearDown(self):
+        shutil.rmtree(self.root, ignore_errors=True)
+
+    def test_the_environment_variable_places_the_notes(self):
+        argv = ["--url", SOURCE.url, "--subject", "Science", "--topic", "Cell structure", "--no-spec"]
+        result = MintingResult(subject="Science", topic="Cell structure", source_url=SOURCE.url, questions=[])
+
+        with (
+            mock.patch.dict(os.environ, {"TUTAIR_INBOX_ROOT": str(self.root)}),
+            mock.patch.object(tutair_pipeline, "verify_youtube", return_value=SOURCE),
+            mock.patch.object(tutair_pipeline, "fetch_transcript", return_value=SEGMENTS),
+            mock.patch.object(tutair_pipeline, "mint_questions", return_value=result),
+            mock.patch.object(tutair_pipeline, "load_env"),
+        ):
+            tutair_pipeline.main(argv)
+
+        written = list(self.root.glob("**/*.md"))
+        self.assertTrue(written, "nothing was written to TUTAIR_INBOX_ROOT")
+
+    def test_an_explicit_flag_still_beats_the_environment(self):
+        flagged = Path(tempfile.mkdtemp(prefix="tutair-flag-"))
+        self.addCleanup(shutil.rmtree, flagged, True)
+        argv = ["--url", SOURCE.url, "--subject", "Science", "--topic", "Cell structure",
+                "--inbox-root", str(flagged), "--no-spec"]
+        result = MintingResult(subject="Science", topic="Cell structure", source_url=SOURCE.url, questions=[])
+
+        with (
+            mock.patch.dict(os.environ, {"TUTAIR_INBOX_ROOT": str(self.root)}),
+            mock.patch.object(tutair_pipeline, "verify_youtube", return_value=SOURCE),
+            mock.patch.object(tutair_pipeline, "fetch_transcript", return_value=SEGMENTS),
+            mock.patch.object(tutair_pipeline, "mint_questions", return_value=result),
+            mock.patch.object(tutair_pipeline, "load_env"),
+        ):
+            tutair_pipeline.main(argv)
+
+        self.assertTrue(list(flagged.glob("**/*.md")), "the flag was ignored")
+        self.assertEqual(list(self.root.glob("**/*.md")), [], "the env var overrode the flag")
 
 
 if __name__ == "__main__":

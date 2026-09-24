@@ -11,20 +11,68 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 
-def default_inbox_root() -> Path:
-    """Where captures live, resolved per machine rather than hard-coded to one login.
+TUTAIR_ENV_PATH = Path(__file__).resolve().parent / ".env"
+ONEDRIVE_INBOX = ("OneDrive", "Desktop", "MyPKA", "Team Inbox", "TutAIR")
+LOCAL_INBOX = ("MyPKA", "Team Inbox", "TutAIR")
 
-    TUTAIR_INBOX_ROOT wins if it is set. Otherwise the usual MyPKA location under the
-    current user's home, so the same checkout works on a second machine with a
-    different Windows login.
+
+def load_env() -> None:
+    """Read .env. Call this BEFORE anything resolves a default from the environment.
+
+    python-dotenv is not always installed, and a setting that is silently ignored is
+    worse than one that fails, so fall back to a small parser rather than doing nothing.
+    A real environment variable always beats the file, which is what dotenv does too.
+    """
+    if not TUTAIR_ENV_PATH.is_file():
+        return
+    try:
+        from dotenv import load_dotenv
+    except ImportError:
+        load_env_fallback(TUTAIR_ENV_PATH)
+        return
+    load_dotenv(TUTAIR_ENV_PATH)
+
+
+def load_env_fallback(path: Path) -> None:
+    """Minimal KEY=VALUE reader for when python-dotenv is not installed."""
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+def default_inbox_root() -> Path:
+    """Where captures live, resolved per machine at the moment it is needed.
+
+    Resolved lazily, never bound at import: a default frozen when the module loads cannot
+    see a TUTAIR_INBOX_ROOT that .env sets afterwards, which is exactly how this went
+    wrong before.
+
+    Order:
+      1. TUTAIR_INBOX_ROOT, if set.
+      2. The OneDrive MyPKA folder, but ONLY if it already exists. A machine that has
+         used it keeps working; a fresh machine is never sent into OneDrive, which may be
+         signed out, may be unwanted, or may quietly sync a student's notes to the cloud.
+      3. MyPKA under the user's home, with no OneDrive involved.
     """
     configured = os.getenv("TUTAIR_INBOX_ROOT", "").strip()
     if configured:
         return Path(configured)
-    return Path.home() / "OneDrive" / "Desktop" / "MyPKA" / "Team Inbox" / "TutAIR"
 
+    onedrive = Path.home().joinpath(*ONEDRIVE_INBOX)
+    if onedrive.is_dir():
+        return onedrive
 
-DEFAULT_INBOX_ROOT = default_inbox_root()
+    return Path.home().joinpath(*LOCAL_INBOX)
 
 
 @dataclass(frozen=True)
@@ -46,7 +94,7 @@ class TutairCapture:
 
 def dated_inbox_dir(root: Path | None = None, captured_at: date | None = None) -> Path:
     capture_date = captured_at or date.today()
-    base = root or DEFAULT_INBOX_ROOT
+    base = root or default_inbox_root()
     return base / f"{capture_date:%Y}" / f"{capture_date:%m}"
 
 
@@ -230,11 +278,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--topic", required=True, help="Learning topic, for example Cell division.")
     parser.add_argument("--possible-exam-board", default="unknown")
     parser.add_argument("--confidence-level", default="low", choices=["low", "medium", "high"])
-    parser.add_argument("--inbox-root", type=Path, default=DEFAULT_INBOX_ROOT)
+    parser.add_argument("--inbox-root", type=Path, default=None)
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
+    load_env()
     args = parse_args(argv)
     captured_on = datetime.now().date()
     source_type = detect_source_type(args.url, args.text_file)

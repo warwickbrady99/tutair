@@ -22,7 +22,8 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 from tutair_intake import (
-    DEFAULT_INBOX_ROOT,
+    default_inbox_root,
+    load_env,
     TutairCapture,
     dated_inbox_dir,
     extract_youtube_video_id,
@@ -207,12 +208,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--topic", required=True, help="Learning topic, for example Cell division.")
     parser.add_argument("--possible-exam-board", default="unknown")
     parser.add_argument("--confidence-level", default="low", choices=["low", "medium", "high"])
-    parser.add_argument("--inbox-root", type=Path, default=DEFAULT_INBOX_ROOT)
+    x
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
+    load_env()
     args = parse_args(argv)
+    inbox_root = args.inbox_root or default_inbox_root()
 
     source = verify_youtube(args.url)
     if source is None:
@@ -231,7 +234,7 @@ def main(argv: list[str] | None = None) -> int:
 
     captured_on = datetime.now().date()
     source_path, transcript_path = save_transcript_files(
-        source, segments, args.subject, args.topic, captured_on, args.inbox_root
+        source, segments, args.subject, args.topic, captured_on, inbox_root
     )
     capture = build_ready_capture(
         source,
@@ -243,7 +246,7 @@ def main(argv: list[str] | None = None) -> int:
         args.possible_exam_board,
         args.confidence_level,
     )
-    capture_path = save_capture(capture, args.inbox_root)
+    capture_path = save_capture(capture, inbox_root)
 
     print(f"Saved source content:      {source_path}")
     print(f"Saved timestamped transcript: {transcript_path}")
